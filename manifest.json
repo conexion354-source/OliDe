@@ -1,0 +1,22 @@
+{
+  "name": "OBS Titles Pro",
+  "short_name": "OBS Titles",
+  "description": "Panel instalable para títulos, zócalos y tema del momento para OBS.",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#07111f",
+  "theme_color": "#ff7a00",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
