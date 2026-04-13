@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>OliDe Overlay</title>
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
+  <style>
+    :root {
+      --text: #ffffff;
+      --muted: #e8eefc;
+      --amber: #f59e0b;
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: transparent !important;
+      font-family: Inter, system-ui, Arial, sans-serif;
+    }
+    body { color: var(--text); }
+    .stage {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      background: transparent !important;
+    }
+    .overlay-top {
+      position: absolute;
+      left: 30px;
+      top: 24px;
+      max-width: 60%;
+      color: white;
+      text-shadow: 0 10px 24px rgba(0,0,0,.5);
+    }
+    .brandline {
+      font-size: clamp(18px, 2vw, 34px);
+      font-style: italic;
+      color: var(--amber);
+      font-weight: 800;
+      margin-bottom: 8px;
+    }
+    .title {
+      font-size: clamp(26px, 3vw, 46px);
+      font-weight: 900;
+      line-height: 1.03;
+      margin: 0;
+    }
+    .subtitle {
+      margin-top: 8px;
+      font-size: clamp(14px, 1.3vw, 20px);
+      color: var(--muted);
+    }
+    .lower {
+      position: absolute;
+      left: 24px;
+      bottom: 24px;
+      max-width: 75%;
+      display: none;
+      background: linear-gradient(135deg, rgba(15,23,42,.92), rgba(29,78,216,.88));
+      border: 1px solid rgba(255,255,255,.14);
+      border-radius: 20px;
+      padding: 18px 20px;
+      color: white;
+      backdrop-filter: blur(8px);
+      box-shadow: 0 14px 32px rgba(0,0,0,.25);
+    }
+    .lower.show { display: block; }
+    .kicker {
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      font-size: 12px;
+      font-weight: 900;
+      color: #bfdbfe;
+    }
+    .maintext { margin-top: 6px; font-size: clamp(18px, 1.8vw, 28px); font-weight: 900; }
+    .subtext { margin-top: 8px; color: rgba(255,255,255,.92); font-size: clamp(13px, 1vw, 17px); }
+    .ticker {
+      position: absolute;
+      left: 24px;
+      right: 24px;
+      bottom: 24px;
+      display: none;
+      align-items: center;
+      border-radius: 18px;
+      overflow: hidden;
+      background: rgba(7,17,31,.88);
+      border: 1px solid rgba(255,255,255,.12);
+      color: white;
+      backdrop-filter: blur(8px);
+      box-shadow: 0 14px 32px rgba(0,0,0,.25);
+    }
+    .ticker.show { display: flex; }
+    .ticker-label {
+      background: linear-gradient(135deg, #f59e0b, #d97706);
+      padding: 14px 18px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: .07em;
+      white-space: nowrap;
+    }
+    .ticker-text {
+      padding: 0 16px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      font-size: clamp(14px, 1vw, 18px);
+    }
+    .logos {
+      position: absolute;
+      top: 18px;
+      right: 22px;
+      text-align: right;
+      color: #facc15;
+      font-weight: 900;
+      text-shadow: 0 8px 20px rgba(0,0,0,.45);
+      font-size: clamp(14px, 1.3vw, 28px);
+      line-height: 1.05;
+    }
+    .compact .overlay-top { max-width: 45%; }
+    .compact .brandline { font-size: clamp(16px, 1.3vw, 24px); }
+    .compact .title { font-size: clamp(22px, 2.2vw, 34px); }
+    .compact .subtitle { font-size: clamp(12px, 1vw, 16px); }
+  </style>
+</head>
+<body>
+  <div class="stage" id="stage">
+    <div class="logos">FM APOCALIPSIS 100.7<br/>ZONA FE</div>
+    <div class="overlay-top" id="topWrap">
+      <div class="brandline" id="brand"></div>
+      <div class="title" id="title"></div>
+      <div class="subtitle" id="subtitle"></div>
+    </div>
+    <div class="lower" id="lower">
+      <div class="kicker" id="kicker"></div>
+      <div class="maintext" id="main"></div>
+      <div class="subtext" id="sub"></div>
+    </div>
+    <div class="ticker" id="ticker">
+      <div class="ticker-label" id="tickerLabel"></div>
+      <div class="ticker-text" id="tickerText"></div>
+    </div>
+  </div>
+
+  <script>
+    const params = new URLSearchParams(location.search);
+    const byId = id => document.getElementById(id);
+
+    function text(name, fallback = '') {
+      return params.get(name) || fallback;
+    }
+    function flag(name) {
+      return params.get(name) === '1';
+    }
+
+    byId('brand').textContent = text('brand');
+    byId('title').textContent = text('title');
+    byId('subtitle').textContent = text('subtitle');
+    byId('kicker').textContent = text('kicker');
+    byId('main').textContent = text('main');
+    byId('sub').textContent = text('sub');
+    byId('tickerLabel').textContent = text('tickerLabel');
+    byId('tickerText').textContent = text('tickerText');
+
+    byId('topWrap').style.display = flag('showTop') ? 'block' : 'none';
+    byId('lower').classList.toggle('show', flag('showLower'));
+    byId('ticker').classList.toggle('show', flag('showTicker'));
+    byId('stage').classList.toggle('compact', flag('compact'));
+  </script>
+</body>
+</html>
