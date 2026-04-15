@@ -28,6 +28,7 @@ const state = {
 const els = {
   tabs: document.querySelectorAll(".tab"),
   panels: document.querySelectorAll(".tab-panel"),
+  securityWarning: document.getElementById("securityWarning"),
   obsLed: document.getElementById("obsLed"),
   obsStatus: document.getElementById("obsStatus"),
   obsHost: document.getElementById("obsHost"),
@@ -50,6 +51,7 @@ const els = {
   weatherDesc: document.getElementById("weatherDesc"),
   weatherIconImg: document.getElementById("weatherIconImg"),
   weatherIconText: document.getElementById("weatherIconText"),
+  weatherOutput: document.getElementById("weatherOutput"),
   clockText: document.getElementById("clockText"),
   clockDate: document.getElementById("clockDate"),
   autoClockToggle: document.getElementById("autoClockToggle"),
@@ -62,38 +64,43 @@ function log(message, type = "info") {
   const stamp = new Date().toLocaleTimeString("es-AR", {
     hour: "2-digit",
     minute: "2-digit",
-    second: "2-digit"
+    second: "2-digit",
   });
+
   line.className = "log-line";
   line.innerHTML = `<span class="log-time">${stamp}</span><span class="log-${type}">${message}</span>`;
   els.logOutput.prepend(line);
 }
 
 function saveState() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify({
-    host: els.obsHost.value.trim(),
-    port: els.obsPort.value.trim(),
-    password: els.obsPassword.value,
-    title: els.titleInput.value,
-    city: els.cityInput.value.trim(),
-    apiKey: els.weatherApiKey.value.trim(),
-    theme: els.themeSelect.value,
-    logo: els.logoToggle.checked,
-    autoClock: els.autoClockToggle.checked,
-  }));
+  localStorage.setItem(
+    STORAGE_KEY,
+    JSON.stringify({
+      host: els.obsHost.value.trim(),
+      port: els.obsPort.value.trim(),
+      password: els.obsPassword.value,
+      title: els.titleInput.value,
+      city: els.cityInput.value.trim(),
+      apiKey: els.weatherApiKey.value.trim(),
+      theme: els.themeSelect.value,
+      logo: els.logoToggle.checked,
+      autoClock: els.autoClockToggle.checked,
+    })
+  );
 }
 
 function loadState() {
   const raw = localStorage.getItem(STORAGE_KEY);
+
   if (!raw) {
-    els.obsHost.value = "127.0.0.1";
+    els.obsHost.value = "192.168.1.154";
     els.obsPort.value = "4455";
     return;
   }
 
   try {
     const data = JSON.parse(raw);
-    els.obsHost.value = data.host || "127.0.0.1";
+    els.obsHost.value = data.host || "192.168.1.154";
     els.obsPort.value = data.port || "4455";
     els.obsPassword.value = data.password || "";
     els.titleInput.value = data.title || "";
@@ -127,7 +134,7 @@ function paintClock() {
     weekday: "short",
     day: "2-digit",
     month: "short",
-    year: "numeric"
+    year: "numeric",
   });
 }
 
@@ -135,8 +142,30 @@ function clockPayload() {
   return new Date().toLocaleTimeString("es-AR", {
     hour: "2-digit",
     minute: "2-digit",
-    second: "2-digit"
+    second: "2-digit",
   });
+}
+
+function showSecurityWarning() {
+  const isSecure = window.location.protocol === "https:";
+  const isStandalone =
+    window.matchMedia("(display-mode: standalone)").matches ||
+    window.navigator.standalone === true;
+
+  els.securityWarning.classList.toggle("hidden", !(isSecure || isStandalone));
+}
+
+function getObsWsUrl(host, port) {
+  const isSecure = window.location.protocol === "https:";
+  const isStandalone =
+    window.matchMedia("(display-mode: standalone)").matches ||
+    window.navigator.standalone === true;
+
+  if (isSecure || isStandalone) {
+    throw new Error("Esta version del panel debe abrirse por HTTP local. No uses HTTPS ni modo instalable para conectar con OBS.");
+  }
+
+  return `ws://${host}:${port}`;
 }
 
 async function refreshCurrentScene() {
@@ -146,68 +175,89 @@ async function refreshCurrentScene() {
 }
 
 async function getSceneItemIdBySource(sourceName) {
-  const sceneName = state.currentSceneName || await refreshCurrentScene();
+  const sceneName = state.currentSceneName || (await refreshCurrentScene());
   const res = await obs.call("GetSceneItemId", {
     sceneName,
-    sourceName
+    sourceName,
   });
-  return { sceneName, sceneItemId: res.sceneItemId };
+
+  return {
+    sceneName,
+    sceneItemId: res.sceneItemId,
+  };
 }
 
 async function obsSetText(inputName, text) {
-  if (!state.connected) throw new Error("OBS no conectado");
+  if (!state.connected) {
+    throw new Error("OBS no conectado");
+  }
+
   await obs.call("SetInputSettings", {
     inputName,
     inputSettings: { text },
-    overlay: true
+    overlay: true,
   });
 }
 
 async function obsSetVisible(sourceName, enabled) {
-  if (!state.connected) throw new Error("OBS no conectado");
+  if (!state.connected) {
+    throw new Error("OBS no conectado");
+  }
+
   const { sceneName, sceneItemId } = await getSceneItemIdBySource(sourceName);
+
   await obs.call("SetSceneItemEnabled", {
     sceneName,
     sceneItemId,
-    sceneItemEnabled: enabled
+    sceneItemEnabled: enabled,
   });
 }
 
 async function obsSetTitleColor(isUrgent) {
-  if (!state.connected) throw new Error("OBS no conectado");
+  if (!state.connected) {
+    throw new Error("OBS no conectado");
+  }
 
   await obs.call("SetInputSettings", {
     inputName: SOURCE_NAMES.title,
     inputSettings: {
-      color: isUrgent ? 255 : 16777215
+      color: isUrgent ? 16711680 : 16777215
     },
-    overlay: true
+    overlay: true,
   });
 }
 
 async function connectOBS() {
-  const host = els.obsHost.value.trim() || "127.0.0.1";
+  const host = els.obsHost.value.trim() || "192.168.1.154";
   const port = els.obsPort.value.trim() || "4455";
   const pass = els.obsPassword.value;
 
   saveState();
 
   try {
-    await obs.connect(`ws://${host}:${port}`, pass);
+    const wsUrl = getObsWsUrl(host, port);
+    await obs.connect(wsUrl, pass);
     await refreshCurrentScene();
     setConnected(true);
-    log(`Conectado a ws://${host}:${port}`);
+    log(`Conectado a ${wsUrl}`);
     await activateTheme(els.themeSelect.value);
     await syncLogo();
-    if (state.autoClock) startAutoClock();
+
+    if (state.autoClock) {
+      startAutoClock();
+    }
   } catch (err) {
     setConnected(false);
     log(`Error de conexion: ${err.message}`, "error");
+    alert(err.message);
   }
 }
 
-function disconnectOBS() {
-  try { obs.disconnect(); } catch {}
+async function disconnectOBS() {
+  try {
+    await obs.disconnect();
+  } catch {}
+
   stopAutoClock(false);
   setConnected(false);
   log("Desconectado de OBS");
@@ -218,9 +268,10 @@ async function activateTheme(theme) {
     try {
       await obsSetVisible(groupName, key === theme);
     } catch (err) {
-      log(`No se pudo cambiar grupo ${groupName}`, "error");
+      log(`No se pudo cambiar grupo ${groupName}: ${err.message}`, "error");
     }
   }
+
   log(`Tema activo: ${theme}`);
 }
 
@@ -248,13 +299,20 @@ async function toggleUrgent() {
 
 async function sendTitle() {
   const text = els.titleInput.value.trim();
-  if (!text) return log("Escribi un titulo.", "error");
+
+  if (!text) {
+    return log("Escribi un titulo.", "error");
+  }
 
   saveState();
 
   try {
     await obsSetText(SOURCE_NAMES.title, text);
-    if (state.urgent) await obsSetTitleColor(true);
+
+    if (state.urgent) {
+      await obsSetTitleColor(true);
+    }
+
     setTitleLive(true);
     log("Titulo enviado a obs_titulo");
   } catch (err) {
@@ -266,8 +324,13 @@ async function searchWeather() {
   const apiKey = els.weatherApiKey.value.trim();
   const city = els.cityInput.value.trim();
 
-  if (!apiKey) return log("Falta API Key de OpenWeather.", "error");
-  if (!city) return log("Falta ciudad.", "error");
+  if (!apiKey) {
+    return log("Falta API Key de OpenWeather.", "error");
+  }
+
+  if (!city) {
+    return log("Falta ciudad.", "error");
+  }
 
   saveState();
 
@@ -280,7 +343,10 @@ async function searchWeather() {
 
     const res = await fetch(url);
     const data = await res.json();
-    if (!res.ok) throw new Error(data.message || "Error OpenWeather");
+
+    if (!res.ok) {
+      throw new Error(data.message || "Error OpenWeather");
+    }
 
     const temp = Math.round(data.main.temp);
     const desc = data.weather?.[0]?.description || "Sin datos";
@@ -301,6 +367,7 @@ async function searchWeather() {
     }
 
     state.weatherText = `${cityName}: ${temp}°C - ${desc} ${icon}`.trim();
+    els.weatherOutput.textContent = state.weatherText;
     log(`Clima cargado para ${cityName}`);
   } catch (err) {
     log(`No se pudo buscar clima: ${err.message}`, "error");
@@ -308,7 +375,9 @@ async function searchWeather() {
 }
 
 async function sendWeather() {
-  if (!state.weatherText) return log("Primero busca el clima.", "error");
+  if (!state.weatherText) {
+    return log("Primero busca el clima.", "error");
+  }
 
   try {
     await obsSetText(SOURCE_NAMES.weather, state.weatherText);
@@ -331,7 +400,9 @@ function startAutoClock() {
   state.autoClock = true;
   saveState();
 
-  if (!state.connected) return;
+  if (!state.connected) {
+    return;
+  }
 
   sendClock();
   state.clockInterval = setInterval(sendClock, 1000);
@@ -339,10 +410,16 @@ function startAutoClock() {
 }
 
 function stopAutoClock(updateCheckbox = true) {
-  if (state.clockInterval) clearInterval(state.clockInterval);
+  if (state.clockInterval) {
+    clearInterval(state.clockInterval);
+  }
+
   state.clockInterval = null;
   state.autoClock = false;
-  if (updateCheckbox) els.autoClockToggle.checked = false;
+
+  if (updateCheckbox) {
+    els.autoClockToggle.checked = false;
+  }
 }
 
 function bindTabs() {
@@ -415,6 +492,7 @@ function bindEvents() {
 }
 
 loadState();
+showSecurityWarning();
 bindEvents();
 paintClock();
 setInterval(paintClock, 1000);
