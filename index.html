@@ -14,23 +14,29 @@
         <p class="eyebrow">Produccion</p>
         <h1>Panel OBS Pro</h1>
       </div>
-      <div class="led-wrap">
-        <span id="obsLed" class="led led-off"></span>
-        <span id="obsStatus">Desconectado</span>
+      <div class="topbar-right">
+        <div class="led-wrap">
+          <span id="obsLed" class="led led-off"></span>
+          <span id="obsStatus">Desconectado</span>
+        </div>
       </div>
     </header>
 
+    <div id="securityWarning" class="security-warning hidden">
+      Abrí este panel por HTTP local. No uses HTTPS ni PWA para conectar con OBS.
+    </div>
+
     <nav class="tabs">
-      <button class="tab active" data-tab="operacion">Operacion</button>
-      <button class="tab" data-tab="setup">Setup</button>
+      <button class="tab active" data-tab="operacion" type="button">Operacion</button>
+      <button class="tab" data-tab="setup" type="button">Setup</button>
     </nav>
 
     <section id="operacion" class="tab-panel active">
       <details class="section" open>
         <summary>Urgente</summary>
         <div class="section-body">
-          <button id="panicBtn" class="btn btn-danger big">URGENTE</button>
-          <p class="hint">Activa fondo de alerta y fuerza el titulo en rojo.</p>
+          <button id="panicBtn" class="btn btn-danger big" type="button">URGENTE</button>
+          <p class="hint">Activa <code>obs_alerta_bg</code> y fuerza el titulo en modo alerta.</p>
         </div>
       </details>
 
@@ -41,7 +47,7 @@
             <span>Titulo</span>
             <textarea id="titleInput" rows="4" placeholder="Escribi el titulo al aire"></textarea>
           </label>
-          <button id="sendTitleBtn" class="btn btn-live">MANDAR AL VIVO</button>
+          <button id="sendTitleBtn" class="btn btn-live" type="button">MANDAR AL VIVO</button>
           <div class="live-row">
             <span id="titleLiveLed" class="led led-off"></span>
             <span id="titleLiveText">Standby</span>
@@ -57,8 +63,8 @@
             <input id="cityInput" type="text" placeholder="Ej: Resistencia" />
           </label>
           <div class="row">
-            <button id="searchWeatherBtn" class="btn btn-neutral">Buscar</button>
-            <button id="sendWeatherBtn" class="btn btn-live">Enviar</button>
+            <button id="searchWeatherBtn" class="btn btn-neutral" type="button">Buscar</button>
+            <button id="sendWeatherBtn" class="btn btn-live" type="button">Enviar</button>
           </div>
           <div class="preview">
             <div><strong>Temp:</strong> <span id="weatherTemp">--</span></div>
@@ -67,6 +73,10 @@
               <strong>Icono:</strong>
               <img id="weatherIconImg" alt="icono clima" />
               <span id="weatherIconText">--</span>
+            </div>
+            <div class="weather-output">
+              <strong>Salida:</strong>
+              <span id="weatherOutput">Todavia no cargaste clima.</span>
             </div>
           </div>
         </div>
@@ -83,7 +93,7 @@
             <span>Sync Auto</span>
             <input id="autoClockToggle" type="checkbox" />
           </label>
-          <button id="sendClockBtn" class="btn btn-neutral">Enviar ahora</button>
+          <button id="sendClockBtn" class="btn btn-neutral" type="button">Enviar ahora</button>
         </div>
       </details>
     </section>
@@ -94,7 +104,7 @@
         <div class="section-body">
           <label class="field">
             <span>IP</span>
-            <input id="obsHost" type="text" placeholder="127.0.0.1" />
+            <input id="obsHost" type="text" placeholder="192.168.1.154" />
           </label>
           <label class="field">
             <span>Puerto</span>
@@ -105,8 +115,8 @@
             <input id="obsPassword" type="password" placeholder="Password websocket" />
           </label>
           <div class="row">
-            <button id="connectBtn" class="btn btn-live">Conectar</button>
-            <button id="disconnectBtn" class="btn btn-neutral">Desconectar</button>
+            <button id="connectBtn" class="btn btn-live" type="button">Conectar</button>
+            <button id="disconnectBtn" class="btn btn-neutral" type="button">Desconectar</button>
           </div>
         </div>
       </details>
