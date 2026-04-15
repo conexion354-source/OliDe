@@ -1,0 +1,11 @@
+.weather-icon-row{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  margin-top:6px;
+}
+#weatherIconImg{
+  width:24px;
+  height:24px;
+  display:none;
+}
