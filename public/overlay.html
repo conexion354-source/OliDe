@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OBS Overlay Transparente</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/obs-websocket-js@5.0.2/dist/obs-ws.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .slide-up-enter { transform: translateY(150%); opacity: 0; }
+        .slide-up-active { transform: translateY(0); opacity: 1; transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1); }
+        .slide-up-exit { transform: translateY(150%); opacity: 0; transition: all 0.4s ease-in; }
+        .fade-enter { opacity: 0; }
+        .fade-active { opacity: 1; transition: opacity 0.5s ease-out; }
+        .fade-exit { opacity: 0; transition: opacity 0.4s ease-in; }
+    </style>
+</head>
+<body class="bg-transparent w-screen h-screen overflow-hidden relative font-sans text-white">
+
+    <div id="widget-clock" class="absolute top-8 right-8 bg-black/80 backdrop-blur-md px-6 py-2 rounded-xl border border-gray-700 shadow-2xl fade-exit flex items-center gap-3">
+        <i class="fa-regular fa-clock text-blue-400"></i>
+        <span id="clock-text" class="text-3xl font-bold font-mono tracking-widest">00:00:00</span>
+    </div>
+
+    <div id="widget-weather" class="absolute top-24 right-8 bg-gradient-to-r from-blue-900/90 to-blue-800/90 backdrop-blur-md px-6 py-3 rounded-xl shadow-2xl fade-exit min-w-[200px]">
+        <p id="weather-city" class="text-xs text-blue-200 uppercase tracking-wider font-bold mb-1">Ciudad</p>
+        <div class="flex items-center gap-4">
+            <i id="weather-icon" class="fa-solid fa-cloud-sun text-3xl text-yellow-300"></i>
+            <span id="weather-temp" class="text-4xl font-bold">--°</span>
+        </div>
+    </div>
+
+    <div id="zocalo-titulo" class="absolute bottom-12 left-12 slide-up-exit">
+        <div class="bg-blue-600 text-white px-8 py-3 rounded-t-xl inline-block shadow-lg">
+            <h1 id="titulo-main" class="text-4xl font-black uppercase tracking-wide">TÍTULO PRINCIPAL</h1>
+        </div>
+        <div class="bg-gray-900/95 backdrop-blur-md text-white px-8 py-4 rounded-b-xl rounded-tr-xl border-l-4 border-blue-400 shadow-2xl max-w-3xl">
+            <h2 id="titulo-sub" class="text-2xl text-gray-300 font-light">Subtítulo o descripción de la noticia</h2>
+        </div>
+    </div>
+
+    <div id="locutor-left" class="absolute bottom-12 left-12 slide-up-exit hidden">
+        <div class="bg-gradient-to-r from-purple-700 to-indigo-600 px-6 py-3 rounded-xl shadow-2xl flex items-center gap-4">
+            <div class="bg-white/20 p-2 rounded-full"><i class="fa-solid fa-microphone"></i></div>
+            <span class="nombre-locutor text-2xl font-bold">Nombre</span>
+        </div>
+    </div>
+    <div id="locutor-center" class="absolute bottom-12 left-1/2 -translate-x-1/2 slide-up-exit hidden">
+        <div class="bg-gradient-to-r from-pink-600 to-red-600 px-8 py-3 rounded-xl shadow-2xl flex items-center gap-4 border-b-4 border-white/30">
+            <div class="bg-white/20 p-2 rounded-full"><i class="fa-solid fa-microphone"></i></div>
+            <span class="nombre-locutor text-2xl font-bold tracking-widest">Nombre</span>
+        </div>
+    </div>
+    <div id="locutor-right" class="absolute bottom-12 right-12 slide-up-exit hidden">
+        <div class="bg-gradient-to-l from-emerald-600 to-teal-500 px-6 py-3 rounded-xl shadow-2xl flex items-center gap-4">
+            <span class="nombre-locutor text-2xl font-bold">Nombre</span>
+            <div class="bg-white/20 p-2 rounded-full"><i class="fa-solid fa-microphone"></i></div>
+        </div>
+    </div>
+
+    <script>
+        setInterval(() => {
+            const now = new Date();
+            document.getElementById('clock-text').textContent = now.toLocaleTimeString('es-AR', { hour12: false });
+        }, 1000);
+
+        function showElement(id) {
+            const el = document.getElementById(id);
+            el.classList.remove('hidden', 'slide-up-exit', 'fade-exit');
+            el.classList.add(id.includes('widget') ? 'fade-active' : 'slide-up-active');
+        }
+
+        function hideElement(id) {
+            const el = document.getElementById(id);
+            el.classList.remove('slide-up-active', 'fade-active');
+            el.classList.add(id.includes('widget') ? 'fade-exit' : 'slide-up-exit');
+        }
+
+        function hideAllZocalos() {
+            hideElement('zocalo-titulo');
+            hideElement('locutor-left');
+            hideElement('locutor-center');
+            hideElement('locutor-right');
+        }
+
+        const obs = new OBSWebSocket();
+        let retryCount = 0;
+        const MAX_RETRIES = 3;
+        
+        async function connectOBS() {
+            try {
+                // Si tienes contraseña en OBS, ponla aquí abajo. Ejemplo: await obs.connect('ws://localhost:4455', 'tu_pass');
+                await obs.connect('ws://localhost:4455');
+                console.log("Overlay conectado a OBS");
+                retryCount = 0;
+            } catch (e) {
+                const errorStr = e.message ? e.message : String(e);
+                if (errorStr.includes('Canvas') || errorStr.includes('not allowed') || errorStr.includes('Failed to construct')) {
+                    iniciarModoDemo();
+                    return;
+                }
+                retryCount++;
+                if (retryCount < MAX_RETRIES) setTimeout(connectOBS, 5000);
+            }
+        }
+
+        function iniciarModoDemo() {
+            setTimeout(() => showElement('widget-clock'), 1000);
+            setTimeout(() => {
+                document.getElementById('weather-city').textContent = 'Buenos Aires';
+                document.getElementById('weather-temp').textContent = '24°';
+                showElement('widget-weather');
+            }, 2500);
+            setTimeout(() => {
+                document.getElementById('titulo-main').textContent = 'MODO DEMO ACTIVO';
+                document.getElementById('titulo-sub').textContent = 'Así se verán tus gráficos en OBS';
+                showElement('zocalo-titulo');
+            }, 4500);
+            setTimeout(() => {
+                document.getElementById('locutor-right').querySelector('.nombre-locutor').textContent = 'Conductor';
+                showElement('locutor-right');
+            }, 7000);
+        }
+        
+        obs.on('CustomEvent', (data) => {
+            const payload = data;
+            if (payload.action === 'TOGGLE_CLOCK') {
+                const el = document.getElementById('widget-clock');
+                el.classList.contains('fade-active') ? hideElement('widget-clock') : showElement('widget-clock');
+            }
+            if (payload.action === 'SHOW_WEATHER') {
+                document.getElementById('weather-city').textContent = payload.city;
+                document.getElementById('weather-temp').textContent = payload.temp + '°';
+                const isSunny = payload.code < 3;
+                document.getElementById('weather-icon').className = isSunny ? 'fa-solid fa-sun text-yellow-400 text-3xl' : 'fa-solid fa-cloud text-gray-300 text-3xl';
+                showElement('widget-weather');
+            }
+            if (payload.action === 'HIDE_WEATHER') hideElement('widget-weather');
+            if (payload.action === 'SHOW_TITLE') {
+                hideAllZocalos();
+                setTimeout(() => {
+                    document.getElementById('titulo-main').textContent = payload.title;
+                    document.getElementById('titulo-sub').textContent = payload.subtitle;
+                    showElement('zocalo-titulo');
+                }, 400);
+            }
+            if (payload.action === 'SHOW_LOCUTOR') {
+                hideAllZocalos();
+                setTimeout(() => {
+                    const id = `locutor-${payload.position}`;
+                    document.getElementById(id).querySelector('.nombre-locutor').textContent = payload.name;
+                    showElement(id);
+                }, 400);
+            }
+            if (payload.action === 'HIDE_ALL_GRAPHICS') hideAllZocalos();
+        });
+
+        connectOBS();
+    </script>
+</body>
+</html>
